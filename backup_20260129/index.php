@@ -1,0 +1,1 @@
+<?php // Copia de seguridad ?>
