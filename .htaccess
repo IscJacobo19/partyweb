@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Rutas limpias del panel admin
+RewriteRule ^admin/?$ admin.php [L,QSA]
+RewriteRule ^admin-login/?$ admin_login.php [L,QSA]
+RewriteRule ^admin-logout/?$ admin_logout.php [L,QSA]
+
