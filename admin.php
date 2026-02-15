@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require __DIR__ . '/admin_auth.php';
 admin_require_login();
 ?>
@@ -1345,15 +1345,16 @@ admin_require_login();
     unitsPageActions.innerHTML = buttons.join("");
   }
 
-  function buildInviteMessage(unidad) {
+    function buildInviteMessage(unidad) {
     const code = String(unidad.codigo_confirmacion || "").trim().toUpperCase();
+    const inviteUrl = new URL("./", window.location.href).toString();
     return (
       "Gabriela y Jimmy te invitan a una celebracion muy especial.\n\n" +
-      "Hola " + unidad.nombre + ", aquí está tu invitación:\n" +
-      "https://gabyyjimmy.jelly-dev.com/\n\n" +
-      "Tu codigo de confirmacion:\n" +
-      "`" + code + "`\n\n" +
-      "Copia este codigo para confirmar tu asistencia."
+      "Hola " + unidad.nombre + ", aqui esta tu invitacion:\n" +
+      inviteUrl + "\n\n" +
+      "CODIGO DE CONFIRMACION:\n" +
+      code + "\n\n" +
+      "Copia solo este codigo para confirmar tu asistencia."
     );
   }
 
@@ -2403,3 +2404,4 @@ admin_require_login();
 </script>
 </body>
 </html>
+
