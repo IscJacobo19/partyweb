@@ -619,23 +619,27 @@ body{
   left: 0;
   right: 0;
   margin-top: 8px;
-  padding: 20px 10px 14px;
+  padding: 22px 10px 16px;
   text-align: center;
-  font-size: 1rem;
+  font-size: 1.08rem;
   font-weight: 800;
-  color: #7a4f0f;
+  color: #6d4305;
   letter-spacing: .05em;
   text-transform: uppercase;
-  text-shadow: 0 1px 0 rgba(255,255,255,.6);
-  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,.96) 28%, rgba(255,255,255,1));
+  text-shadow: 0 1px 0 rgba(255,255,255,.72);
+  border-top: 1px solid rgba(191, 161, 75, .35);
+  box-shadow: 0 -8px 24px rgba(122, 90, 26, .18);
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,249,232,.95) 22%, rgba(255,246,220,1)),
+    linear-gradient(90deg, rgba(255,224,153,.18), rgba(255,224,153,0));
   pointer-events: none;
   z-index: 2;
 }
 .modal-scroll-hint::after{
-  content: "↓";
+  content: "↓ ↓";
   display: block;
-  margin-top: 5px;
-  font-size: 1.45rem;
+  margin-top: 6px;
+  font-size: 1.6rem;
   line-height: 1;
   color: #9b6c12;
   animation: modalHintBounce .9s ease-in-out infinite;
@@ -770,6 +774,15 @@ input:focus,textarea:focus,select:focus{
 }
 .modal-dress-code{
   margin: .9rem 0 .25rem;
+}
+@media (max-width: 900px){
+  .modal-scroll-hint{
+    font-size: 1.16rem;
+    padding: 24px 8px 16px;
+  }
+  .modal-scroll-hint::after{
+    font-size: 1.8rem;
+  }
 }
 .qr-card{
   align-items: center;
