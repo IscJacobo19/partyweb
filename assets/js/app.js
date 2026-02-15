@@ -489,18 +489,22 @@ function resumeBackgroundMusicIfNeeded() {
 function handleVisibilityAudioChange() {
   try {
     if (document.hidden) {
-      if (bgMusic) {
-        bgMusicResumeOnVisible = !bgMusic.paused;
-        if (!bgMusic.paused) bgMusic.pause();
-      }
-      if (typingSfx) {
-        typingSfxResumeOnVisible = !typingSfx.paused;
-        if (!typingSfx.paused) typingSfx.pause();
-      }
+      pauseAudioForBackground();
       return;
     }
     resumeBackgroundMusicIfNeeded();
   } catch (e) {}
+}
+
+function pauseAudioForBackground() {
+  if (bgMusic) {
+    bgMusicResumeOnVisible = !bgMusic.paused;
+    if (!bgMusic.paused) bgMusic.pause();
+  }
+  if (typingSfx) {
+    typingSfxResumeOnVisible = !typingSfx.paused;
+    if (!typingSfx.paused) typingSfx.pause();
+  }
 }
 
 function startTypingSound() {
@@ -861,6 +865,8 @@ function init() {
     btnCalendar.addEventListener("click", addCalendarReminder);
   }
   document.addEventListener("visibilitychange", handleVisibilityAudioChange);
+  window.addEventListener("blur", pauseAudioForBackground);
+  window.addEventListener("pagehide", pauseAudioForBackground);
   window.addEventListener("focus", resumeBackgroundMusicIfNeeded);
   window.addEventListener("pageshow", resumeBackgroundMusicIfNeeded);
   if (modalCard) {
