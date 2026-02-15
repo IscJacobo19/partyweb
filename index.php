@@ -138,6 +138,17 @@ $previewImage = $baseUrl . '/assets/img/background.png';
         <button class="iconbtn" data-close aria-label="Cerrar">&times;</button>
       </div>
 
+      <div id="confirmDressCode" class="mi-card modal-dress-code">
+        <div>
+          <span class="mi-label">Código de vestimenta</span>
+          <span class="mi-value">Beige · Blanco</span>
+        </div>
+        <div>
+          <span class="mi-label">Indicaciones</span>
+          <span class="mi-value">Trae tu traje de baño</span>
+        </div>
+      </div>
+
       <form id="rsvpForm" class="form">
         <label>
           <span>Grupo o nombre</span>
@@ -172,16 +183,6 @@ $previewImage = $baseUrl . '/assets/img/background.png';
             <span class="mi-value">Guárdalo para presentarlo en la entrada.</span>
             <button id="downloadQrBtn" class="btn btn--solid btn--full qr-download" type="button">Descargar QR</button>
             <button id="btnCalendar" class="btn btn--ghost btn--full qr-download" type="button">Agregar al calendario</button>
-          </div>
-          <div id="confirmDressCode" class="mi-card">
-            <div>
-              <span class="mi-label">Código de vestimenta</span>
-              <span class="mi-value">Beige · Blanco</span>
-            </div>
-            <div>
-              <span class="mi-label">Indicaciones</span>
-              <span class="mi-value">Trae tu traje de baño</span>
-            </div>
           </div>
           <p id="confirmCancelHint" class="mi-warning">
             Si necesitas cancelar tu asistencia, hazlo desde esta invitación retirando tu selección e ingresando tu código.

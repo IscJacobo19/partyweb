@@ -284,6 +284,8 @@ let selectedUnidad = null;
 let bgMusic = null;
 let typingSfx = null;
 let bgMusicResumeOnVisible = false;
+let typingSfxResumeOnVisible = false;
+let bgMusicResumeBinded = false;
 
 function show(el) {
   [intro, loading, invite].forEach((s) => s.classList.add("is-hidden"));
@@ -438,17 +440,68 @@ function startBackgroundMusic() {
   } catch (e) {}
 }
 
+function bindResumeOnInteraction() {
+  if (bgMusicResumeBinded) return;
+  bgMusicResumeBinded = true;
+  const events = ["pointerdown", "touchstart", "click", "keydown"];
+  const resume = () => {
+    let resumedAny = false;
+    if (bgMusic && bgMusicResumeOnVisible) {
+      bgMusic.play().then(() => {
+        bgMusicResumeOnVisible = false;
+      }).catch(() => {});
+      resumedAny = true;
+    }
+    if (typingSfx && typingSfxResumeOnVisible) {
+      typingSfx.play().then(() => {
+        typingSfxResumeOnVisible = false;
+      }).catch(() => {});
+      resumedAny = true;
+    }
+    if (resumedAny) {
+      events.forEach((ev) => document.removeEventListener(ev, resume, true));
+      bgMusicResumeBinded = false;
+    }
+  };
+  events.forEach((ev) => document.addEventListener(ev, resume, true));
+}
+
+function resumeBackgroundMusicIfNeeded() {
+  let needsInteraction = false;
+  if (bgMusicResumeOnVisible && bgMusic) {
+    bgMusic.play().then(() => {
+      bgMusicResumeOnVisible = false;
+    }).catch(() => {
+      needsInteraction = true;
+    });
+  }
+  if (typingSfxResumeOnVisible && typingSfx) {
+    typingSfx.play().then(() => {
+      typingSfxResumeOnVisible = false;
+    }).catch(() => {
+      needsInteraction = true;
+    });
+  }
+  if (needsInteraction) {
+    // Some mobile browsers require a fresh user interaction after app switch.
+    bindResumeOnInteraction();
+  }
+}
+
 function handleVisibilityAudioChange() {
   try {
-    if (!bgMusic) return;
     if (document.hidden) {
-      bgMusicResumeOnVisible = !bgMusic.paused;
-      if (!bgMusic.paused) bgMusic.pause();
+      if (bgMusic) {
+        bgMusicResumeOnVisible = !bgMusic.paused;
+        if (!bgMusic.paused) bgMusic.pause();
+      }
+      if (typingSfx) {
+        typingSfxResumeOnVisible = !typingSfx.paused;
+        if (!typingSfx.paused) typingSfx.pause();
+      }
       return;
     }
-    if (bgMusicResumeOnVisible) {
-      bgMusic.play().catch(() => {});
-    }
+    resumeBackgroundMusicIfNeeded();
   } catch (e) {}
 }
 
@@ -471,6 +524,7 @@ function stopTypingSound() {
     if (!typingSfx) return;
     typingSfx.pause();
     typingSfx.currentTime = 0;
+    typingSfxResumeOnVisible = false;
   } catch (e) {}
 }
 
@@ -809,6 +863,8 @@ function init() {
     btnCalendar.addEventListener("click", addCalendarReminder);
   }
   document.addEventListener("visibilitychange", handleVisibilityAudioChange);
+  window.addEventListener("focus", resumeBackgroundMusicIfNeeded);
+  window.addEventListener("pageshow", resumeBackgroundMusicIfNeeded);
   if (modalCard) {
     modalCard.addEventListener("scroll", updateModalScrollHint);
   }
