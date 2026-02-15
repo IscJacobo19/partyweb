@@ -74,6 +74,36 @@ Al subir cambios de frontend, prueba con query string:
 - `assets/js/app.js?v=YYYYMMDD-a`
 - `assets/css/styles.css?v=YYYYMMDD-a`
 
+## Flujo de ramas y versionado
+- Ramas permanentes:
+  - `main`: produccion estable.
+  - `QA`: validacion previa a produccion.
+  - `Desarrollo`: integracion de cambios.
+- Ramas temporales:
+  - `feature/*`: una rama por cambio puntual. Se crea desde `Desarrollo` y se elimina al terminar.
+- Flujo recomendado:
+  1. Crear `feature/*` desde `Desarrollo`.
+  2. Merge `feature/*` -> `Desarrollo`.
+  3. Merge `Desarrollo` -> `QA`.
+  4. Merge `QA` -> `main`.
+  5. Crear tag en `main` al desplegar.
+
+### Versiones (tags)
+- No crear una rama por version.
+- Cada despliegue a produccion debe tener un tag.
+- Formato recomendado: SemVer (`vMAJOR.MINOR.PATCH`):
+  - `PATCH` (`v1.0.1`): correcciones pequenas sin romper compatibilidad.
+  - `MINOR` (`v1.1.0`): nuevas funcionalidades compatibles.
+  - `MAJOR` (`v2.0.0`): cambios que rompen compatibilidad.
+
+Comandos base:
+```bash
+git checkout main
+git pull
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
 ## Seguridad
 - Cambia credenciales de admin en `admin_auth.php`.
 - No compartas usuario/contrasena en canales no seguros.

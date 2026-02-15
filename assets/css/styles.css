@@ -529,6 +529,16 @@ body{
   color:#8e6206;
   box-shadow: 0 8px 20px rgba(191,161,75,.25);
 }
+.btn--locked{
+  background: linear-gradient(90deg, #d8d3c8 0%, #c2b9ab 100%);
+  color: #6b6153;
+  box-shadow: 0 6px 14px rgba(70, 58, 41, 0.18);
+  cursor: not-allowed;
+  filter: grayscale(0.12);
+}
+.btn--locked:hover{
+  filter: grayscale(0.12) brightness(1);
+}
 .btn--full{width:100%; justify-content:center}
 
 .tiny{
@@ -784,6 +794,12 @@ input:focus,textarea:focus,select:focus{
   margin-top:.25rem;
   font-weight:600;
   color:#9c6a0c;
+}
+.lock-modal__text{
+  margin: .9rem 0 1rem;
+  color: #6a4b2f;
+  line-height: 1.45;
+  font-size: .98rem;
 }
 
 /* BREAKPOINTS */
