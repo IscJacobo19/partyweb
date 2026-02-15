@@ -28,6 +28,8 @@ const btnCalendar = $("#btnCalendar");
 const btnConfirm = $("#btnConfirm");
 
 const modal = $("#modal");
+const modalCard = modal ? $(".modal__card", modal) : null;
+const modalScrollHint = $("#modalScrollHint");
 const lockModal = $("#lockModal");
 const lockModalOk = $("#lockModalOk");
 const rsvpForm = $("#rsvpForm");
@@ -92,6 +94,30 @@ function openLockModal() {
 function closeLockModal() {
   if (!lockModal) return;
   lockModal.classList.add("is-hidden");
+}
+
+function updateModalScrollHint() {
+  if (!modalCard || !modalScrollHint || !modal) return;
+  if (modal.classList.contains("is-hidden")) {
+    modalScrollHint.classList.add("is-hidden");
+    return;
+  }
+
+  const showingConfirm =
+    confirmExperience &&
+    !confirmExperience.classList.contains("is-hidden") &&
+    confirmInfo &&
+    !confirmInfo.classList.contains("is-hidden");
+
+  if (!showingConfirm) {
+    modalScrollHint.classList.add("is-hidden");
+    return;
+  }
+
+  const maxScroll = modalCard.scrollHeight - modalCard.clientHeight;
+  const hasOverflow = maxScroll > 10;
+  const atBottom = modalCard.scrollTop >= maxScroll - 10;
+  modalScrollHint.classList.toggle("is-hidden", !hasOverflow || atBottom);
 }
 
 function ensureQrLib() {
@@ -257,6 +283,7 @@ let unidades = [];
 let selectedUnidad = null;
 let bgMusic = null;
 let typingSfx = null;
+let bgMusicResumeOnVisible = false;
 
 function show(el) {
   [intro, loading, invite].forEach((s) => s.classList.add("is-hidden"));
@@ -404,8 +431,24 @@ function startBackgroundMusic() {
       bgMusic.loop = true;
       bgMusic.volume = 0.05;
     }
-    bgMusic.currentTime = 0;
+    if (bgMusic.currentTime <= 0) {
+      bgMusic.currentTime = 0;
+    }
     bgMusic.play().catch(() => {});
+  } catch (e) {}
+}
+
+function handleVisibilityAudioChange() {
+  try {
+    if (!bgMusic) return;
+    if (document.hidden) {
+      bgMusicResumeOnVisible = !bgMusic.paused;
+      if (!bgMusic.paused) bgMusic.pause();
+      return;
+    }
+    if (bgMusicResumeOnVisible) {
+      bgMusic.play().catch(() => {});
+    }
   } catch (e) {}
 }
 
@@ -549,6 +592,8 @@ function resetModal() {
   if (confirmQrCard) confirmQrCard.classList.add("is-hidden");
   if (confirmDressCode) confirmDressCode.classList.remove("is-hidden");
   if (confirmCancelHint) confirmCancelHint.classList.remove("is-hidden");
+  if (modalCard) modalCard.scrollTop = 0;
+  updateModalScrollHint();
 
   const first = document.createElement("option");
   first.value = "";
@@ -605,11 +650,13 @@ function openModal() {
   }
   modal.classList.remove("is-hidden");
   loadUnidades().then(resetModal);
+  requestAnimationFrame(updateModalScrollHint);
 }
 
 function closeModal() {
   modal.classList.add("is-hidden");
   resetModal();
+  updateModalScrollHint();
 }
 
 async function submitConfirmacion(e) {
@@ -672,6 +719,8 @@ async function submitConfirmacion(e) {
     await sleep(1400);
     if (confirmSpinner) confirmSpinner.classList.add("is-hidden");
     if (confirmInfo) confirmInfo.classList.remove("is-hidden");
+    updateModalScrollHint();
+    setTimeout(updateModalScrollHint, 60);
     if (confirmQr && !resultMessage.fullCancel) {
       const qrData = "confirmacion:" + codigo;
       confirmQr.style.display = "block";
@@ -732,6 +781,7 @@ async function submitConfirmacion(e) {
       lastQrCode = "";
       lastGuestName = "";
     }
+    setTimeout(updateModalScrollHint, 120);
   } catch (err) {
     setStatus(err.message || "No se pudo guardar la confirmación.", true);
   }
@@ -758,6 +808,11 @@ function init() {
   if (btnCalendar) {
     btnCalendar.addEventListener("click", addCalendarReminder);
   }
+  document.addEventListener("visibilitychange", handleVisibilityAudioChange);
+  if (modalCard) {
+    modalCard.addEventListener("scroll", updateModalScrollHint);
+  }
+  window.addEventListener("resize", updateModalScrollHint);
 
   applyRsvpLockUi();
   setInterval(applyRsvpLockUi, 15000);
