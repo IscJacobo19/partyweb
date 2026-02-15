@@ -138,17 +138,6 @@ $previewImage = $baseUrl . '/assets/img/background.png';
         <button class="iconbtn" data-close aria-label="Cerrar">&times;</button>
       </div>
 
-      <div id="confirmDressCode" class="mi-card modal-dress-code">
-        <div>
-          <span class="mi-label">Código de vestimenta</span>
-          <span class="mi-value">Beige · Blanco</span>
-        </div>
-        <div>
-          <span class="mi-label">Indicaciones</span>
-          <span class="mi-value">Trae tu traje de baño</span>
-        </div>
-      </div>
-
       <form id="rsvpForm" class="form">
         <label>
           <span>Grupo o nombre</span>
@@ -175,6 +164,16 @@ $previewImage = $baseUrl . '/assets/img/background.png';
         <div id="confirmSpinner" class="modal-spinner"></div>
         <div id="confirmInfo" class="confirm-info is-hidden">
           <p id="confirmMainMessage" class="mi-sub">Nos alegra contar contigo en este momento especial.</p>
+          <div id="confirmDressCode" class="mi-card modal-dress-code">
+            <div>
+              <span class="mi-label">Código de vestimenta</span>
+              <span class="mi-value">Beige · Blanco</span>
+            </div>
+            <div>
+              <span class="mi-label">Indicaciones</span>
+              <span class="mi-value">Trae tu traje de baño</span>
+            </div>
+          </div>
           <p id="confirmSecondaryMessage" class="mi-sub mi-sub--secondary">Te esperamos con mucho cariño.</p>
           <div id="confirmQrCard" class="mi-card qr-card">
             <span class="mi-label">Tu código QR</span>

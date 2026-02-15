@@ -445,47 +445,45 @@ function bindResumeOnInteraction() {
   bgMusicResumeBinded = true;
   const events = ["pointerdown", "touchstart", "click", "keydown"];
   const resume = () => {
-    let resumedAny = false;
     if (bgMusic && bgMusicResumeOnVisible) {
       bgMusic.play().then(() => {
         bgMusicResumeOnVisible = false;
       }).catch(() => {});
-      resumedAny = true;
     }
     if (typingSfx && typingSfxResumeOnVisible) {
       typingSfx.play().then(() => {
         typingSfxResumeOnVisible = false;
       }).catch(() => {});
-      resumedAny = true;
     }
-    if (resumedAny) {
-      events.forEach((ev) => document.removeEventListener(ev, resume, true));
-      bgMusicResumeBinded = false;
-    }
+    setTimeout(() => {
+      if (!bgMusicResumeOnVisible && !typingSfxResumeOnVisible) {
+        events.forEach((ev) => document.removeEventListener(ev, resume, true));
+        bgMusicResumeBinded = false;
+      }
+    }, 40);
   };
   events.forEach((ev) => document.addEventListener(ev, resume, true));
 }
 
 function resumeBackgroundMusicIfNeeded() {
-  let needsInteraction = false;
+  const pending = [];
   if (bgMusicResumeOnVisible && bgMusic) {
-    bgMusic.play().then(() => {
+    pending.push(bgMusic.play().then(() => {
       bgMusicResumeOnVisible = false;
-    }).catch(() => {
-      needsInteraction = true;
-    });
+    }).catch(() => {}));
   }
   if (typingSfxResumeOnVisible && typingSfx) {
-    typingSfx.play().then(() => {
+    pending.push(typingSfx.play().then(() => {
       typingSfxResumeOnVisible = false;
-    }).catch(() => {
-      needsInteraction = true;
-    });
+    }).catch(() => {}));
   }
-  if (needsInteraction) {
-    // Some mobile browsers require a fresh user interaction after app switch.
-    bindResumeOnInteraction();
-  }
+  if (pending.length === 0) return;
+  Promise.allSettled(pending).then(() => {
+    if (bgMusicResumeOnVisible || typingSfxResumeOnVisible) {
+      // Some mobile browsers require a fresh user interaction after app switch.
+      bindResumeOnInteraction();
+    }
+  });
 }
 
 function handleVisibilityAudioChange() {
