@@ -196,6 +196,9 @@ $previewImage = $baseUrl . '/assets/img/background.png';
           </p>
         </div>
       </section>
+      <div id="modalScrollHint" class="modal-scroll-hint is-hidden" aria-hidden="true">
+        <span>Desliza para ver m&aacute;s</span>
+      </div>
     </div>
   </div>
 
