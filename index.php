@@ -176,7 +176,7 @@ $previewImage = $baseUrl . '/assets/img/background.png';
           <div id="confirmDressCode" class="mi-card">
             <div>
               <span class="mi-label">Código de vestimenta</span>
-              <span class="mi-value">Café · Blanco · Negro</span>
+              <span class="mi-value">Beige · Blanco</span>
             </div>
             <div>
               <span class="mi-label">Indicaciones</span>
