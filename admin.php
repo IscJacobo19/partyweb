@@ -1346,11 +1346,14 @@ admin_require_login();
   }
 
   function buildInviteMessage(unidad) {
+    const code = String(unidad.codigo_confirmacion || "").trim().toUpperCase();
     return (
       "Gabriela y Jimmy te invitan a una celebracion muy especial.\n\n" +
       "Hola " + unidad.nombre + ", aquí está tu invitación:\n" +
       "https://gabyyjimmy.jelly-dev.com/\n\n" +
-      "Tu código de confirmación: " + unidad.codigo_confirmacion
+      "Tu codigo de confirmacion:\n" +
+      "`" + code + "`\n\n" +
+      "Copia este codigo para confirmar tu asistencia."
     );
   }
 
