@@ -1346,7 +1346,7 @@ admin_require_login();
   }
 
     function buildInviteMessage(unidad) {
-    const code = "1234";
+    const code = String(unidad.codigo_confirmacion || "").trim().toUpperCase();
     const inviteUrl = new URL("./", window.location.href).toString();
     return (
       "Gabriela y Jimmy te invitan a una celebracion muy especial.\n\n" +
