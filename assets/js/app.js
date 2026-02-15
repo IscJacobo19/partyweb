@@ -28,6 +28,8 @@ const btnCalendar = $("#btnCalendar");
 const btnConfirm = $("#btnConfirm");
 
 const modal = $("#modal");
+const lockModal = $("#lockModal");
+const lockModalOk = $("#lockModalOk");
 const rsvpForm = $("#rsvpForm");
 const formStatus = $("#formStatus");
 const unidadSelect = $("#unidadSelect");
@@ -49,6 +51,48 @@ let qrLibPromise = null;
 let lastQrDataUrl = "";
 let lastQrCode = "";
 let lastGuestName = "";
+
+function parseCompactLocalDateTime(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const d = new Date(year, month, day, hour, minute, second);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function getRsvpLockState() {
+  const eventDate = parseCompactLocalDateTime(CONFIG?.calendar?.startLocal);
+  const reason = "Las confirmaciones se cerraron una semana antes del evento.";
+  const lockAt = eventDate
+    ? new Date(eventDate.getTime() - 7 * 24 * 60 * 60 * 1000)
+    : null;
+  if (!lockAt) return { locked: false, reason: "", lockAt: null };
+  return { locked: Date.now() >= lockAt.getTime(), reason, lockAt };
+}
+
+function applyRsvpLockUi() {
+  if (!btnConfirm) return;
+  const state = getRsvpLockState();
+  btnConfirm.classList.toggle("btn--locked", !!state.locked);
+  btnConfirm.title = state.locked ? state.reason : "";
+  btnConfirm.setAttribute("aria-disabled", state.locked ? "true" : "false");
+}
+
+function openLockModal() {
+  if (!lockModal) return;
+  lockModal.classList.remove("is-hidden");
+}
+
+function closeLockModal() {
+  if (!lockModal) return;
+  lockModal.classList.add("is-hidden");
+}
 
 function ensureQrLib() {
   if (typeof window.qrcode === "function") return Promise.resolve(true);
@@ -554,6 +598,11 @@ async function loadUnidades() {
 }
 
 function openModal() {
+  const lockState = getRsvpLockState();
+  if (lockState.locked) {
+    openLockModal();
+    return;
+  }
   modal.classList.remove("is-hidden");
   loadUnidades().then(resetModal);
 }
@@ -565,6 +614,11 @@ function closeModal() {
 
 async function submitConfirmacion(e) {
   e.preventDefault();
+  const lockState = getRsvpLockState();
+  if (lockState.locked) {
+    setStatus(lockState.reason, true);
+    return;
+  }
   if (!selectedUnidad) {
     setStatus("Selecciona tu grupo o nombre.", true);
     return;
@@ -705,13 +759,24 @@ function init() {
     btnCalendar.addEventListener("click", addCalendarReminder);
   }
 
+  applyRsvpLockUi();
+  setInterval(applyRsvpLockUi, 15000);
   btnConfirm.addEventListener("click", openModal);
   modal.addEventListener("click", (e) => {
     if (e.target && e.target.matches("[data-close], .modal__backdrop")) closeModal();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modal.classList.contains("is-hidden")) closeModal();
+    if (e.key === "Escape" && lockModal && !lockModal.classList.contains("is-hidden")) closeLockModal();
   });
+  if (lockModal) {
+    lockModal.addEventListener("click", (e) => {
+      if (e.target && e.target.matches("[data-lock-close], .modal__backdrop")) closeLockModal();
+    });
+  }
+  if (lockModalOk) {
+    lockModalOk.addEventListener("click", closeLockModal);
+  }
 
   unidadSelect.addEventListener("change", () => {
     const id = Number(unidadSelect.value);
