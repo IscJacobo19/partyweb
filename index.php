@@ -199,6 +199,20 @@ $previewImage = $baseUrl . '/assets/img/background.png';
     </div>
   </div>
 
+  <div id="lockModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="lockModalTitle">
+    <div class="modal__backdrop" data-lock-close></div>
+    <div class="modal__card">
+      <div class="modal__header">
+        <h2 id="lockModalTitle">Confirmaciones cerradas</h2>
+        <button class="iconbtn" data-lock-close aria-label="Cerrar">&times;</button>
+      </div>
+      <p class="lock-modal__text">
+        Ya no puedes confirmar, ya pasó la fecha límite de confirmación.
+      </p>
+      <button id="lockModalOk" class="btn btn--solid btn--full" type="button">Entendido</button>
+    </div>
+  </div>
+
 
   <script src="assets/js/qrcode-generator.js?v=1"></script>
   <script src="assets/js/app.js?v=3"></script>
