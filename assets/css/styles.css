@@ -623,13 +623,13 @@ body{
   text-align: center;
   font-size: 1rem;
   font-weight: 800;
-  color: #6b4311;
+  color: #3f2400;
   letter-spacing: .04em;
   text-transform: uppercase;
   text-shadow: 0 1px 0 rgba(255,255,255,.72);
-  border-top: 2px solid rgba(140, 95, 30, .55);
-  box-shadow: 0 -8px 22px rgba(95, 62, 21, .24);
-  background: #d8b57a;
+  border-top: 2px solid rgba(95, 58, 17, .7);
+  box-shadow: 0 -8px 22px rgba(70, 42, 11, .34);
+  background: #8d5a24;
   pointer-events: none;
   z-index: 2;
   animation: modalHintGlow 1.5s ease-in-out infinite;
@@ -641,7 +641,7 @@ body{
   right: 0;
   top: -16px;
   height: 16px;
-  background: linear-gradient(to top, rgba(216,181,122,.72), rgba(216,181,122,0));
+  background: linear-gradient(to top, rgba(141,90,36,.75), rgba(141,90,36,0));
   pointer-events: none;
 }
 .modal-scroll-hint::after{
@@ -650,7 +650,7 @@ body{
   margin-top: 4px;
   font-size: 1.35rem;
   line-height: 1;
-  color: #6b4311;
+  color: #3f2400;
   animation: modalHintBounce .95s ease-in-out infinite;
 }
 @keyframes modalHintBounce{
