@@ -283,6 +283,7 @@ let unidades = [];
 let selectedUnidad = null;
 let bgMusic = null;
 let typingSfx = null;
+let bgMusicStarted = false;
 let bgMusicResumeOnVisible = false;
 let typingSfxResumeOnVisible = false;
 let bgMusicResumeBinded = false;
@@ -433,6 +434,7 @@ function startBackgroundMusic() {
       bgMusic.loop = true;
       bgMusic.volume = 0.05;
     }
+    bgMusicStarted = true;
     if (bgMusic.currentTime <= 0) {
       bgMusic.currentTime = 0;
     }
@@ -466,8 +468,14 @@ function bindResumeOnInteraction() {
 }
 
 function resumeBackgroundMusicIfNeeded() {
+  if (document.hidden) return;
   const pending = [];
-  if (bgMusicResumeOnVisible && bgMusic) {
+  if (bgMusicStarted && !bgMusic) {
+    bgMusic = new Audio(CONFIG.musicUrl);
+    bgMusic.loop = true;
+    bgMusic.volume = 0.05;
+  }
+  if (bgMusic && (bgMusicResumeOnVisible || bgMusic.paused)) {
     pending.push(bgMusic.play().then(() => {
       bgMusicResumeOnVisible = false;
     }).catch(() => {}));
