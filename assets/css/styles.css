@@ -623,23 +623,26 @@ body{
   text-align: center;
   font-size: 1.18rem;
   font-weight: 900;
-  color: #5d3500;
+  color: #173800;
   letter-spacing: .05em;
   text-transform: uppercase;
   text-shadow: 0 1px 0 rgba(255,255,255,.72);
-  border-top: 2px solid rgba(191, 161, 75, .55);
-  box-shadow: 0 -10px 28px rgba(122, 90, 26, .3);
-  background-color: rgba(57, 255, 20, .92);
-  background-image: linear-gradient(
-    to top,
-    rgba(57, 255, 20, .96) 0%,
-    rgba(57, 255, 20, .78) 46%,
-    rgba(57, 255, 20, .34) 74%,
-    rgba(57, 255, 20, 0) 100%
-  );
+  border-top: 2px solid rgba(31, 97, 10, .75);
+  box-shadow: 0 -10px 28px rgba(24, 74, 8, .45);
+  background: #39ff14;
   pointer-events: none;
   z-index: 2;
   animation: modalHintGlow 1.5s ease-in-out infinite;
+}
+.modal-scroll-hint::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -22px;
+  height: 22px;
+  background: linear-gradient(to top, rgba(57,255,20,.8), rgba(57,255,20,0));
+  pointer-events: none;
 }
 .modal-scroll-hint::after{
   content: "↓ ↓";
@@ -647,7 +650,7 @@ body{
   margin-top: 6px;
   font-size: 1.9rem;
   line-height: 1;
-  color: #8f5600;
+  color: #173800;
   animation: modalHintBounce .75s ease-in-out infinite;
 }
 @keyframes modalHintBounce{
