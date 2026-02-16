@@ -469,29 +469,32 @@ function bindResumeOnInteraction() {
 
 function resumeBackgroundMusicIfNeeded() {
   if (document.hidden) return;
-  const pending = [];
+  let needsInteraction = false;
   if (bgMusicStarted && !bgMusic) {
     bgMusic = new Audio(CONFIG.musicUrl);
     bgMusic.loop = true;
     bgMusic.volume = 0.05;
   }
   if (bgMusic && (bgMusicResumeOnVisible || bgMusic.paused)) {
-    pending.push(bgMusic.play().then(() => {
+    bgMusic.play().then(() => {
       bgMusicResumeOnVisible = false;
-    }).catch(() => {}));
+    }).catch(() => {
+      bgMusicResumeOnVisible = true;
+      needsInteraction = true;
+    });
   }
   if (typingSfxResumeOnVisible && typingSfx) {
-    pending.push(typingSfx.play().then(() => {
+    typingSfx.play().then(() => {
       typingSfxResumeOnVisible = false;
-    }).catch(() => {}));
+    }).catch(() => {
+      typingSfxResumeOnVisible = true;
+      needsInteraction = true;
+    });
   }
-  if (pending.length === 0) return;
-  Promise.allSettled(pending).then(() => {
-    if (bgMusicResumeOnVisible || typingSfxResumeOnVisible) {
-      // Some mobile browsers require a fresh user interaction after app switch.
-      bindResumeOnInteraction();
-    }
-  });
+  if (needsInteraction || bgMusicResumeOnVisible || typingSfxResumeOnVisible) {
+    // Some mobile browsers require a fresh user interaction after app switch.
+    bindResumeOnInteraction();
+  }
 }
 
 function handleVisibilityAudioChange() {
