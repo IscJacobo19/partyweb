@@ -28,6 +28,8 @@ const btnCalendar = $("#btnCalendar");
 const btnConfirm = $("#btnConfirm");
 
 const modal = $("#modal");
+const modalCard = modal ? $(".modal__card", modal) : null;
+const modalScrollHint = $("#modalScrollHint");
 const lockModal = $("#lockModal");
 const lockModalOk = $("#lockModalOk");
 const rsvpForm = $("#rsvpForm");
@@ -92,6 +94,30 @@ function openLockModal() {
 function closeLockModal() {
   if (!lockModal) return;
   lockModal.classList.add("is-hidden");
+}
+
+function updateModalScrollHint() {
+  if (!modalCard || !modalScrollHint || !modal) return;
+  if (modal.classList.contains("is-hidden")) {
+    modalScrollHint.classList.add("is-hidden");
+    return;
+  }
+
+  const showingConfirm =
+    confirmExperience &&
+    !confirmExperience.classList.contains("is-hidden") &&
+    confirmInfo &&
+    !confirmInfo.classList.contains("is-hidden");
+
+  if (!showingConfirm) {
+    modalScrollHint.classList.add("is-hidden");
+    return;
+  }
+
+  const maxScroll = modalCard.scrollHeight - modalCard.clientHeight;
+  const hasOverflow = maxScroll > 10;
+  const atBottom = modalCard.scrollTop >= maxScroll - 10;
+  modalScrollHint.classList.toggle("is-hidden", !hasOverflow || atBottom);
 }
 
 function ensureQrLib() {
@@ -257,6 +283,10 @@ let unidades = [];
 let selectedUnidad = null;
 let bgMusic = null;
 let typingSfx = null;
+let bgMusicStarted = false;
+let bgMusicResumeOnVisible = false;
+let typingSfxResumeOnVisible = false;
+let bgMusicResumeBinded = false;
 
 function show(el) {
   [intro, loading, invite].forEach((s) => s.classList.add("is-hidden"));
@@ -404,9 +434,88 @@ function startBackgroundMusic() {
       bgMusic.loop = true;
       bgMusic.volume = 0.05;
     }
-    bgMusic.currentTime = 0;
+    bgMusicStarted = true;
+    if (bgMusic.currentTime <= 0) {
+      bgMusic.currentTime = 0;
+    }
     bgMusic.play().catch(() => {});
   } catch (e) {}
+}
+
+function bindResumeOnInteraction() {
+  if (bgMusicResumeBinded) return;
+  bgMusicResumeBinded = true;
+  const events = ["pointerdown", "touchstart", "click", "keydown"];
+  const resume = () => {
+    if (bgMusic && bgMusicResumeOnVisible) {
+      bgMusic.play().then(() => {
+        bgMusicResumeOnVisible = false;
+      }).catch(() => {});
+    }
+    if (typingSfx && typingSfxResumeOnVisible) {
+      typingSfx.play().then(() => {
+        typingSfxResumeOnVisible = false;
+      }).catch(() => {});
+    }
+    setTimeout(() => {
+      if (!bgMusicResumeOnVisible && !typingSfxResumeOnVisible) {
+        events.forEach((ev) => document.removeEventListener(ev, resume, true));
+        bgMusicResumeBinded = false;
+      }
+    }, 40);
+  };
+  events.forEach((ev) => document.addEventListener(ev, resume, true));
+}
+
+function resumeBackgroundMusicIfNeeded() {
+  if (document.hidden) return;
+  let needsInteraction = false;
+  if (bgMusicStarted && !bgMusic) {
+    bgMusic = new Audio(CONFIG.musicUrl);
+    bgMusic.loop = true;
+    bgMusic.volume = 0.05;
+  }
+  if (bgMusic && (bgMusicResumeOnVisible || bgMusic.paused)) {
+    bgMusic.play().then(() => {
+      bgMusicResumeOnVisible = false;
+    }).catch(() => {
+      bgMusicResumeOnVisible = true;
+      needsInteraction = true;
+    });
+  }
+  if (typingSfxResumeOnVisible && typingSfx) {
+    typingSfx.play().then(() => {
+      typingSfxResumeOnVisible = false;
+    }).catch(() => {
+      typingSfxResumeOnVisible = true;
+      needsInteraction = true;
+    });
+  }
+  if (needsInteraction || bgMusicResumeOnVisible || typingSfxResumeOnVisible) {
+    // Some mobile browsers require a fresh user interaction after app switch.
+    bindResumeOnInteraction();
+  }
+}
+
+function handleVisibilityAudioChange() {
+  try {
+    if (document.hidden) {
+      pauseAudioForBackground();
+      return;
+    }
+    resumeBackgroundMusicIfNeeded();
+  } catch (e) {}
+}
+
+function pauseAudioForBackground() {
+  if (bgMusic) {
+    bgMusicResumeOnVisible = !bgMusic.paused;
+    if (!bgMusic.paused) bgMusic.pause();
+  }
+  if (typingSfx) {
+    typingSfxResumeOnVisible = !typingSfx.paused;
+    if (!typingSfx.paused) typingSfx.pause();
+  }
 }
 
 function startTypingSound() {
@@ -428,6 +537,7 @@ function stopTypingSound() {
     if (!typingSfx) return;
     typingSfx.pause();
     typingSfx.currentTime = 0;
+    typingSfxResumeOnVisible = false;
   } catch (e) {}
 }
 
@@ -549,6 +659,8 @@ function resetModal() {
   if (confirmQrCard) confirmQrCard.classList.add("is-hidden");
   if (confirmDressCode) confirmDressCode.classList.remove("is-hidden");
   if (confirmCancelHint) confirmCancelHint.classList.remove("is-hidden");
+  if (modalCard) modalCard.scrollTop = 0;
+  updateModalScrollHint();
 
   const first = document.createElement("option");
   first.value = "";
@@ -605,11 +717,13 @@ function openModal() {
   }
   modal.classList.remove("is-hidden");
   loadUnidades().then(resetModal);
+  requestAnimationFrame(updateModalScrollHint);
 }
 
 function closeModal() {
   modal.classList.add("is-hidden");
   resetModal();
+  updateModalScrollHint();
 }
 
 async function submitConfirmacion(e) {
@@ -672,6 +786,8 @@ async function submitConfirmacion(e) {
     await sleep(1400);
     if (confirmSpinner) confirmSpinner.classList.add("is-hidden");
     if (confirmInfo) confirmInfo.classList.remove("is-hidden");
+    updateModalScrollHint();
+    setTimeout(updateModalScrollHint, 60);
     if (confirmQr && !resultMessage.fullCancel) {
       const qrData = "confirmacion:" + codigo;
       confirmQr.style.display = "block";
@@ -732,6 +848,7 @@ async function submitConfirmacion(e) {
       lastQrCode = "";
       lastGuestName = "";
     }
+    setTimeout(updateModalScrollHint, 120);
   } catch (err) {
     setStatus(err.message || "No se pudo guardar la confirmación.", true);
   }
@@ -758,6 +875,15 @@ function init() {
   if (btnCalendar) {
     btnCalendar.addEventListener("click", addCalendarReminder);
   }
+  document.addEventListener("visibilitychange", handleVisibilityAudioChange);
+  window.addEventListener("blur", pauseAudioForBackground);
+  window.addEventListener("pagehide", pauseAudioForBackground);
+  window.addEventListener("focus", resumeBackgroundMusicIfNeeded);
+  window.addEventListener("pageshow", resumeBackgroundMusicIfNeeded);
+  if (modalCard) {
+    modalCard.addEventListener("scroll", updateModalScrollHint);
+  }
+  window.addEventListener("resize", updateModalScrollHint);
 
   applyRsvpLockUi();
   setInterval(applyRsvpLockUi, 15000);

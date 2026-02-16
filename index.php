@@ -164,16 +164,7 @@ $previewImage = $baseUrl . '/assets/img/background.png';
         <div id="confirmSpinner" class="modal-spinner"></div>
         <div id="confirmInfo" class="confirm-info is-hidden">
           <p id="confirmMainMessage" class="mi-sub">Nos alegra contar contigo en este momento especial.</p>
-          <p id="confirmSecondaryMessage" class="mi-sub mi-sub--secondary">Te esperamos con mucho cariño.</p>
-          <div id="confirmQrCard" class="mi-card qr-card">
-            <span class="mi-label">Tu código QR</span>
-            <img id="confirmQr" class="qr-img" alt="Código QR para tu confirmación" />
-            <span id="confirmQrFallback" class="mi-value qr-fallback is-hidden"></span>
-            <span class="mi-value">Guárdalo para presentarlo en la entrada.</span>
-            <button id="downloadQrBtn" class="btn btn--solid btn--full qr-download" type="button">Descargar QR</button>
-            <button id="btnCalendar" class="btn btn--ghost btn--full qr-download" type="button">Agregar al calendario</button>
-          </div>
-          <div id="confirmDressCode" class="mi-card">
+          <div id="confirmDressCode" class="mi-card modal-dress-code">
             <div>
               <span class="mi-label">Código de vestimenta</span>
               <span class="mi-value">Beige · Blanco</span>
@@ -182,6 +173,15 @@ $previewImage = $baseUrl . '/assets/img/background.png';
               <span class="mi-label">Indicaciones</span>
               <span class="mi-value">Trae tu traje de baño</span>
             </div>
+          </div>
+          <p id="confirmSecondaryMessage" class="mi-sub mi-sub--secondary">Te esperamos con mucho cariño.</p>
+          <div id="confirmQrCard" class="mi-card qr-card">
+            <span class="mi-label">Tu código QR</span>
+            <img id="confirmQr" class="qr-img" alt="Código QR para tu confirmación" />
+            <span id="confirmQrFallback" class="mi-value qr-fallback is-hidden"></span>
+            <span class="mi-value">Guárdalo para presentarlo en la entrada.</span>
+            <button id="downloadQrBtn" class="btn btn--solid btn--full qr-download" type="button">Descargar QR</button>
+            <button id="btnCalendar" class="btn btn--ghost btn--full qr-download" type="button">Agregar al calendario</button>
           </div>
           <p id="confirmCancelHint" class="mi-warning">
             Si necesitas cancelar tu asistencia, hazlo desde esta invitación retirando tu selección e ingresando tu código.
@@ -196,6 +196,9 @@ $previewImage = $baseUrl . '/assets/img/background.png';
           </p>
         </div>
       </section>
+      <div id="modalScrollHint" class="modal-scroll-hint is-hidden" aria-hidden="true">
+        <span>DESLIZA PARA VER M&Aacute;S</span>
+      </div>
     </div>
   </div>
 

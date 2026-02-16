@@ -613,6 +613,54 @@ body{
   border: 1px solid rgba(214,178,106,.28);
   box-shadow: 0 30px 90px rgba(0,0,0,.35);
 }
+.modal-scroll-hint{
+  position: sticky;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  padding: 16px 10px 12px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f0d8ad;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255,255,255,.72);
+  border-top: 2px solid rgba(255, 214, 157, .35);
+  box-shadow: 0 -10px 26px rgba(10, 5, 2, .45);
+  background: radial-gradient(ellipse at 60% 40%, #2d1a0b 0%, #1a0d05 70%, #0a0502 100%);
+  pointer-events: none;
+  z-index: 2;
+  animation: modalHintGlow 1.5s ease-in-out infinite;
+}
+.modal-scroll-hint::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -16px;
+  height: 16px;
+  background: linear-gradient(to top, rgba(255,214,157,.26), rgba(255,214,157,0));
+  pointer-events: none;
+}
+.modal-scroll-hint::after{
+  content: "↓ ↓";
+  display: block;
+  margin-top: 4px;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #f0d8ad;
+  animation: modalHintBounce .95s ease-in-out infinite;
+}
+@keyframes modalHintBounce{
+  0%, 100% { transform: translateY(0); opacity: .68; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+@keyframes modalHintGlow{
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
 .modal__header{
   display:flex;
   align-items:center;
@@ -736,6 +784,18 @@ input:focus,textarea:focus,select:focus{
   display:flex;
   flex-direction:column;
   gap:8px;
+}
+.modal-dress-code{
+  margin: .9rem 0 .25rem;
+}
+@media (max-width: 900px){
+  .modal-scroll-hint{
+    font-size: 1.05rem;
+    padding: 18px 8px 13px;
+  }
+  .modal-scroll-hint::after{
+    font-size: 1.45rem;
+  }
 }
 .qr-card{
   align-items: center;
