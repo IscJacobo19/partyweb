@@ -68,6 +68,18 @@ function generate_codigo(mysqli $conn, int $length = 4): string {
   throw new RuntimeException('No se pudo generar un código único.');
 }
 
+function parse_member_lines(string $raw): array {
+  $members = [];
+  $lines = preg_split('/\r\n|\r|\n/', $raw);
+  foreach ($lines as $line) {
+    $line = trim($line);
+    if ($line !== '') {
+      $members[] = $line;
+    }
+  }
+  return $members;
+}
+
 function load_admin_state(mysqli $conn, string $kpiFilter = 'all'): array {
   $personasRes = $conn->query("
     SELECT p.unidad_id, p.id, p.nombre, p.asistencia, p.asistio
@@ -321,6 +333,189 @@ if ($action === 'checkin' && $_SERVER['REQUEST_METHOD'] === 'POST') {
   json_response(true, array_merge(['message' => 'Asistencia registrada.'], load_admin_state($conn)));
 }
 
+if ($action === 'update_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+  $unidadId = (int)($_POST['unidad_id'] ?? 0);
+  $nombreUnidad = trim((string)($_POST['nombre_unidad'] ?? ''));
+  $miembrosJson = trim((string)($_POST['miembros_json'] ?? ''));
+
+  if ($unidadId <= 0) {
+    json_response(false, ['message' => 'Invitación inválida.'], 422);
+  }
+  if ($nombreUnidad === '') {
+    json_response(false, ['message' => 'Nombre es obligatorio.'], 422);
+  }
+  $stmtUnidad = $conn->prepare("
+    SELECT id, tipo
+    FROM invitacion_unidad
+    WHERE id = ? AND activo = 1
+    LIMIT 1
+  ");
+  $stmtUnidad->bind_param('i', $unidadId);
+  $stmtUnidad->execute();
+  $unidad = $stmtUnidad->get_result()->fetch_assoc();
+  $stmtUnidad->close();
+  if (!$unidad) {
+    json_response(false, ['message' => 'Invitación no encontrada.'], 404);
+  }
+
+  $decoded = json_decode($miembrosJson, true);
+  if (!is_array($decoded)) {
+    json_response(false, ['message' => 'Lista de miembros inválida.'], 422);
+  }
+
+  $payloadMembers = [];
+  $seenIds = [];
+  foreach ($decoded as $entry) {
+    if (!is_array($entry)) continue;
+    $name = trim((string)($entry['nombre'] ?? ''));
+    if ($name === '') continue;
+    if (mb_strlen($name, 'UTF-8') > 120) {
+      json_response(false, ['message' => 'Nombre de miembro demasiado largo.'], 422);
+    }
+    $id = isset($entry['id']) ? (int)$entry['id'] : 0;
+    if ($id > 0) {
+      if (isset($seenIds[$id])) {
+        json_response(false, ['message' => 'Miembros duplicados en la edición.'], 422);
+      }
+      $seenIds[$id] = true;
+      $payloadMembers[] = ['id' => $id, 'nombre' => $name];
+    } else {
+      $payloadMembers[] = ['id' => null, 'nombre' => $name];
+    }
+  }
+
+  if (empty($payloadMembers)) {
+    json_response(false, ['message' => 'Debes agregar al menos una persona.'], 422);
+  }
+  $tipoFinal = count($payloadMembers) > 1 ? 'familia' : 'persona';
+
+  $existingRes = $conn->query("
+    SELECT id, nombre, asistencia, asistio
+    FROM invitacion_persona
+    WHERE unidad_id = " . (int)$unidadId
+  );
+  $existingById = [];
+  while ($existingRes && ($row = $existingRes->fetch_assoc())) {
+    $existingById[(int)$row['id']] = [
+      'id' => (int)$row['id'],
+      'nombre' => (string)$row['nombre'],
+      'asistencia' => (int)$row['asistencia'],
+      'asistio' => (int)$row['asistio'],
+    ];
+  }
+
+  foreach ($payloadMembers as $member) {
+    $id = (int)($member['id'] ?? 0);
+    if ($id > 0 && !isset($existingById[$id])) {
+      json_response(false, ['message' => 'Lista de miembros inválida.'], 422);
+    }
+  }
+
+  $payloadById = [];
+  foreach ($payloadMembers as $member) {
+    $id = (int)($member['id'] ?? 0);
+    if ($id > 0) {
+      $payloadById[$id] = $member;
+    }
+  }
+
+  foreach ($existingById as $existingId => $existing) {
+    $isLocked = ((int)$existing['asistencia'] === 1 || (int)$existing['asistio'] === 1);
+    if (!$isLocked) continue;
+    if (!isset($payloadById[$existingId])) {
+      json_response(false, ['message' => 'No puedes eliminar miembros confirmados.'], 422);
+    }
+    $newName = trim((string)$payloadById[$existingId]['nombre']);
+    if ($newName !== trim((string)$existing['nombre'])) {
+      json_response(false, ['message' => 'No puedes editar miembros confirmados.'], 422);
+    }
+  }
+
+  $toUpdate = [];
+  $toDelete = [];
+  foreach ($existingById as $existingId => $existing) {
+    $isLocked = ((int)$existing['asistencia'] === 1 || (int)$existing['asistio'] === 1);
+    if (!isset($payloadById[$existingId])) {
+      if (!$isLocked) {
+        $toDelete[] = $existingId;
+      }
+      continue;
+    }
+    $newName = trim((string)$payloadById[$existingId]['nombre']);
+    if ($newName !== trim((string)$existing['nombre']) && !$isLocked) {
+      $toUpdate[] = ['id' => $existingId, 'nombre' => $newName];
+    }
+  }
+
+  $toInsert = [];
+  foreach ($payloadMembers as $member) {
+    $id = (int)($member['id'] ?? 0);
+    if ($id <= 0) {
+      $toInsert[] = trim((string)$member['nombre']);
+    }
+  }
+
+  $conn->begin_transaction();
+  try {
+    $stmtUpUnidad = $conn->prepare("
+      UPDATE invitacion_unidad
+      SET tipo = ?, nombre = ?
+      WHERE id = ? AND activo = 1
+      LIMIT 1
+    ");
+    $stmtUpUnidad->bind_param('ssi', $tipoFinal, $nombreUnidad, $unidadId);
+    $stmtUpUnidad->execute();
+    $stmtUpUnidad->close();
+
+    if (!empty($toUpdate)) {
+      $stmtUpMember = $conn->prepare("
+        UPDATE invitacion_persona
+        SET nombre = ?
+        WHERE id = ? AND unidad_id = ?
+        LIMIT 1
+      ");
+      foreach ($toUpdate as $item) {
+        $name = $item['nombre'];
+        $memberId = (int)$item['id'];
+        $stmtUpMember->bind_param('sii', $name, $memberId, $unidadId);
+        $stmtUpMember->execute();
+      }
+      $stmtUpMember->close();
+    }
+
+    if (!empty($toDelete)) {
+      $inDelete = implode(',', array_map('intval', $toDelete));
+      $conn->query("
+        DELETE FROM invitacion_persona
+        WHERE unidad_id = " . (int)$unidadId . "
+          AND id IN ($inDelete)
+      ");
+    }
+
+    if (!empty($toInsert)) {
+      $stmtInsMember = $conn->prepare("
+        INSERT INTO invitacion_persona (unidad_id, nombre, asistencia)
+        VALUES (?, ?, 0)
+      ");
+      foreach ($toInsert as $name) {
+        $stmtInsMember->bind_param('is', $unidadId, $name);
+        $stmtInsMember->execute();
+      }
+      $stmtInsMember->close();
+    }
+
+    $conn->commit();
+  } catch (Throwable $e) {
+    $conn->rollback();
+    json_response(false, ['message' => 'No se pudo actualizar la invitación.'], 500);
+  }
+
+  json_response(
+    true,
+    array_merge(['message' => 'Invitación actualizada correctamente.'], load_admin_state($conn))
+  );
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $tipo = trim((string)($_POST['tipo'] ?? ''));
   $nombreUnidad = trim((string)($_POST['nombre_unidad'] ?? ''));
@@ -338,13 +533,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($tipo === 'persona') {
     $miembros[] = $nombreUnidad;
   } else {
-    $lines = preg_split('/\r\n|\r|\n/', $miembrosRaw);
-    foreach ($lines as $line) {
-      $line = trim($line);
-      if ($line !== '') {
-        $miembros[] = $line;
-      }
-    }
+    $miembros = parse_member_lines($miembrosRaw);
   }
 
   if (empty($miembros)) {
