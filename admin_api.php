@@ -336,7 +336,6 @@ if ($action === 'checkin' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($action === 'update_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
   $unidadId = (int)($_POST['unidad_id'] ?? 0);
   $nombreUnidad = trim((string)($_POST['nombre_unidad'] ?? ''));
-  $tipo = trim((string)($_POST['tipo'] ?? ''));
   $miembrosJson = trim((string)($_POST['miembros_json'] ?? ''));
 
   if ($unidadId <= 0) {
@@ -345,12 +344,8 @@ if ($action === 'update_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($nombreUnidad === '') {
     json_response(false, ['message' => 'Nombre es obligatorio.'], 422);
   }
-  if (!in_array($tipo, ['persona', 'familia'], true)) {
-    json_response(false, ['message' => 'Tipo de invitación inválido.'], 422);
-  }
-
   $stmtUnidad = $conn->prepare("
-    SELECT id
+    SELECT id, tipo
     FROM invitacion_unidad
     WHERE id = ? AND activo = 1
     LIMIT 1
@@ -392,6 +387,7 @@ if ($action === 'update_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
   if (empty($payloadMembers)) {
     json_response(false, ['message' => 'Debes agregar al menos una persona.'], 422);
   }
+  $tipoFinal = count($payloadMembers) > 1 ? 'familia' : 'persona';
 
   $existingRes = $conn->query("
     SELECT id, nombre, asistencia, asistio
@@ -467,7 +463,7 @@ if ($action === 'update_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
       WHERE id = ? AND activo = 1
       LIMIT 1
     ");
-    $stmtUpUnidad->bind_param('ssi', $tipo, $nombreUnidad, $unidadId);
+    $stmtUpUnidad->bind_param('ssi', $tipoFinal, $nombreUnidad, $unidadId);
     $stmtUpUnidad->execute();
     $stmtUpUnidad->close();
 
