@@ -810,6 +810,44 @@ admin_require_login();
 
     .hint { color: var(--muted); font-size: 0.82rem; margin-top: 6px; margin-bottom: 10px; }
 
+    .miembros-edit-wrap {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #f8fafc;
+      margin-bottom: 12px;
+    }
+
+    .miembros-edit-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .miembros-edit-head label {
+      margin: 0;
+    }
+
+    .miembros-edit-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .miembro-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .miembro-row.is-locked input {
+      background: #eef2f7;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
     .footer {
       max-width: 1180px;
       margin: 14px auto 24px auto;
@@ -1035,8 +1073,8 @@ admin_require_login();
   <div class="modal-card">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Generar invitación</div>
-        <div class="modal-subtitle">Completa los datos para crear una invitación.</div>
+        <div class="modal-title" id="inv-modal-title">Generar invitación</div>
+        <div class="modal-subtitle" id="inv-modal-subtitle">Completa los datos para crear una invitación.</div>
       </div>
       <button type="button" class="btn-outline" id="close-modal-btn">Cerrar</button>
     </div>
@@ -1059,6 +1097,14 @@ admin_require_login();
             <label for="miembros">Miembros (una persona por linea)</label>
             <textarea id="miembros" name="miembros" placeholder="Ej: Ana Lopez&#10;Jose Martinez&#10;Lucia Perez"></textarea>
             <div class="hint">Para familia/grupo, agrega un participante por linea.</div>
+          </div>
+          <div id="miembros-edit-wrap" class="miembros-edit-wrap" style="display:none;">
+            <div class="miembros-edit-head">
+              <label>Miembros de la invitación</label>
+              <button type="button" class="btn-outline" id="add-member-btn">Agregar nombre</button>
+            </div>
+            <div id="miembros-edit-list" class="miembros-edit-list"></div>
+            <div class="hint">Los miembros confirmados aparecen bloqueados y no se pueden editar ni eliminar.</div>
           </div>
         </div>
       </form>
@@ -1202,6 +1248,11 @@ admin_require_login();
   const flashMsg = document.getElementById("flash-msg");
   const saveBtn = document.getElementById("save-btn");
   const form = document.getElementById("inv-form");
+  const invModalTitle = document.getElementById("inv-modal-title");
+  const invModalSubtitle = document.getElementById("inv-modal-subtitle");
+  const miembrosEditWrap = document.getElementById("miembros-edit-wrap");
+  const miembrosEditList = document.getElementById("miembros-edit-list");
+  const addMemberBtn = document.getElementById("add-member-btn");
 
   const filterGlobal = document.getElementById("filter-global");
 
@@ -1273,6 +1324,7 @@ admin_require_login();
   const scanIntervalMs = 180;
   let pendingCheckin = null;
   let jsQrPromise = null;
+  let editingUnitId = 0;
 
   function escapeHtml(value) {
     return String(value)
@@ -1384,6 +1436,12 @@ admin_require_login();
   }
 
   function syncTypeFields() {
+    if (editingUnitId > 0) {
+      invDetails.style.display = "block";
+      miembrosWrap.style.display = "none";
+      miembrosEditWrap.style.display = "block";
+      return;
+    }
     const hasType = tipo.value === "persona" || tipo.value === "familia";
     invDetails.style.display = hasType ? "block" : "none";
     if (tipo.value === "persona") {
@@ -1405,6 +1463,77 @@ admin_require_login();
       return;
     }
     miembrosWrap.style.display = "block";
+  }
+
+  function renderEditMembers(members) {
+    const rows = (members || []).map((m) => {
+      const id = Number(m.id) || 0;
+      const locked = Number(m.asistencia) === 1 || Number(m.asistio) === 1;
+      const disabled = locked ? "disabled" : "";
+      const lockTag = locked ? `<span class="badge">Confirmado</span>` : "";
+      const removeBtn = locked
+        ? `<button type="button" class="btn-outline" disabled>Bloqueado</button>`
+        : `<button type="button" class="btn-outline" data-member-remove="1">Eliminar</button>`;
+      return `
+        <div class="miembro-row${locked ? " is-locked" : ""}" data-member-row="1">
+          <input type="text" value="${escapeHtml(m.nombre || "")}" data-member-name="1" data-member-id="${id > 0 ? id : ""}" ${disabled} required>
+          <div>${lockTag} ${removeBtn}</div>
+        </div>
+      `;
+    }).join("");
+    miembrosEditList.innerHTML = rows;
+  }
+
+  function appendEditableMemberRow(name = "") {
+    const row = document.createElement("div");
+    row.className = "miembro-row";
+    row.setAttribute("data-member-row", "1");
+    row.innerHTML = `
+      <input type="text" value="${escapeHtml(name)}" data-member-name="1" data-member-id="" required>
+      <div><button type="button" class="btn-outline" data-member-remove="1">Eliminar</button></div>
+    `;
+    miembrosEditList.appendChild(row);
+  }
+
+  function collectEditMembers() {
+    return Array.from(miembrosEditList.querySelectorAll("[data-member-name]"))
+      .map((input) => {
+        const idRaw = String(input.getAttribute("data-member-id") || "").trim();
+        const id = idRaw ? Number(idRaw) : null;
+        const nombre = String(input.value || "").trim();
+        if (!nombre) return null;
+        return { id: Number.isFinite(id) && id > 0 ? id : null, nombre };
+      })
+      .filter(Boolean);
+  }
+
+  function setCreateMode() {
+    editingUnitId = 0;
+    form.reset();
+    tipo.disabled = false;
+    invModalTitle.textContent = "Generar invitación";
+    invModalSubtitle.textContent = "Completa los datos para crear una invitación.";
+    saveBtn.textContent = "Guardar invitación";
+    miembrosEditList.innerHTML = "";
+    syncTypeFields();
+  }
+
+  function openEditModal(unidad) {
+    if (!unidad) return;
+    editingUnitId = Number(unidad.id) || 0;
+    form.reset();
+    tipo.value = unidad.tipo || "";
+    tipo.disabled = true;
+    nombreUnidadInput.value = unidad.nombre || "";
+    invModalTitle.textContent = "Editar invitación";
+    invModalSubtitle.textContent = "Puedes editar y agregar miembros. Confirmados quedan bloqueados.";
+    saveBtn.textContent = "Guardar cambios";
+    renderEditMembers(unidad.members || []);
+    if (!miembrosEditList.querySelector("[data-member-row]")) {
+      appendEditableMemberRow();
+    }
+    syncTypeFields();
+    openModal();
   }
 
   function animateCount(el, toValue, delayMs = 0) {
@@ -1491,6 +1620,7 @@ admin_require_login();
         <td data-label="Confirmados">${Number(u.personas_confirmadas) || 0}</td>
         <td data-label="Detalle" class="members">${members}</td>
         <td data-label="Acciones" class="actions-cell">
+          <button class="btn-mini" type="button" data-action="edit" data-id="${u.id}">Editar</button>
           <button class="btn-mini" type="button" data-action="code" data-id="${u.id}">Ver código</button>
           <button class="btn-mini" type="button" data-action="copy" data-id="${u.id}">Copiar</button>
           <button class="btn-mini" type="button" data-action="wa" data-id="${u.id}">WhatsApp</button>
@@ -1516,6 +1646,7 @@ admin_require_login();
         <div class="invite-meta">Miembros: ${Number(u.personas_total) || 0} | Confirmados: ${Number(u.personas_confirmadas) || 0}</div>
         <div class="members">${members}</div>
         <div style="margin-top:8px;">
+          <button class="btn-mini" type="button" data-action="edit" data-id="${u.id}">Editar</button>
           <button class="btn-mini" type="button" data-action="code" data-id="${u.id}">Ver código</button>
           <button class="btn-mini" type="button" data-action="copy" data-id="${u.id}">Copiar</button>
           <button class="btn-mini" type="button" data-action="wa" data-id="${u.id}">WhatsApp</button>
@@ -1590,8 +1721,9 @@ admin_require_login();
     renderAll();
   }
 
-  async function createInvitation(formData) {
-    const res = await fetch("admin_api.php", {
+  async function saveInvitation(formData, action = "") {
+    const endpoint = action ? ("admin_api.php?action=" + encodeURIComponent(action)) : "admin_api.php";
+    const res = await fetch(endpoint, {
       method: "POST",
       body: formData,
       headers: { Accept: "application/json" }
@@ -1609,9 +1741,15 @@ admin_require_login();
     closeMenu();
   }
 
+  function openCreateModal() {
+    setCreateMode();
+    openModal();
+  }
+
   function closeModal() {
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
+    setCreateMode();
   }
 
   function openHistModal() {
@@ -2121,6 +2259,16 @@ admin_require_login();
   }
 
   tipo.addEventListener("change", syncTypeFields);
+  addMemberBtn.addEventListener("click", () => {
+    appendEditableMemberRow();
+  });
+  miembrosEditList.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest("[data-member-remove]");
+    if (!removeBtn) return;
+    const row = removeBtn.closest("[data-member-row]");
+    if (!row) return;
+    row.remove();
+  });
 
   filterGlobal.addEventListener("input", () => {
     currentPage = 1;
@@ -2162,13 +2310,14 @@ admin_require_login();
     const unidad = state.unidades.find((u) => Number(u.id) === id);
     if (!unidad) return;
     const action = btn.getAttribute("data-action");
+    if (action === "edit") openEditModal(unidad);
     if (action === "copy") copyInvite(unidad);
     if (action === "wa") sendWhatsApp(unidad);
     if (action === "code") openCodeModal(unidad);
   });
 
-  openModalBtn.addEventListener("click", openModal);
-  openModalBtnMobile.addEventListener("click", openModal);
+  openModalBtn.addEventListener("click", openCreateModal);
+  openModalBtnMobile.addEventListener("click", openCreateModal);
   openScanBtn.addEventListener("click", openScanModal);
   openScanBtnMobile.addEventListener("click", openScanModal);
   closeModalBtn.addEventListener("click", closeModal);
@@ -2370,15 +2519,25 @@ admin_require_login();
     });
   });
 
-  syncTypeFields();
+  setCreateMode();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     saveBtn.disabled = true;
     try {
-      await createInvitation(new FormData(form));
-      form.reset();
-      syncTypeFields();
+      if (editingUnitId > 0) {
+        const members = collectEditMembers();
+        if (members.length === 0) {
+          throw new Error("Debes agregar al menos una persona.");
+        }
+        const fd = new FormData(form);
+        fd.append("unidad_id", String(editingUnitId));
+        fd.append("tipo", tipo.value || "");
+        fd.append("miembros_json", JSON.stringify(members));
+        await saveInvitation(fd, "update_invitation");
+      } else {
+        await saveInvitation(new FormData(form));
+      }
       closeModal();
     } catch (err) {
       showMsg("error", err.message || "Error al guardar.");
