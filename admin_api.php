@@ -516,6 +516,32 @@ if ($action === 'update_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
   );
 }
 
+if ($action === 'delete_invitation' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+  $unidadId = (int)($_POST['unidad_id'] ?? 0);
+  if ($unidadId <= 0) {
+    json_response(false, ['message' => 'Invitación inválida.'], 422);
+  }
+
+  $stmt = $conn->prepare("
+    DELETE FROM invitacion_unidad
+    WHERE id = ? AND activo = 1
+    LIMIT 1
+  ");
+  $stmt->bind_param('i', $unidadId);
+  $stmt->execute();
+  $affected = $stmt->affected_rows;
+  $stmt->close();
+
+  if ($affected <= 0) {
+    json_response(false, ['message' => 'Invitación no encontrada.'], 404);
+  }
+
+  json_response(
+    true,
+    array_merge(['message' => 'Invitación eliminada permanentemente.'], load_admin_state($conn))
+  );
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $tipo = trim((string)($_POST['tipo'] ?? ''));
   $nombreUnidad = trim((string)($_POST['nombre_unidad'] ?? ''));

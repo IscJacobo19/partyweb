@@ -518,6 +518,9 @@ admin_require_login();
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .btn-mini:hover { transform: translateY(-1px); box-shadow: 0 8px 16px rgba(31, 79, 139, 0.18); }
+    .btn-mini.btn-danger {
+      background: linear-gradient(120deg, #b42318, #8f1f16);
+    }
 
     .actions-cell { white-space: nowrap; }
 
@@ -1624,6 +1627,7 @@ admin_require_login();
           <button class="btn-mini" type="button" data-action="code" data-id="${u.id}">Ver código</button>
           <button class="btn-mini" type="button" data-action="copy" data-id="${u.id}">Copiar</button>
           <button class="btn-mini" type="button" data-action="wa" data-id="${u.id}">WhatsApp</button>
+          <button class="btn-mini btn-danger" type="button" data-action="delete" data-id="${u.id}">Eliminar</button>
         </td>
       </tr>`;
     }).join("");
@@ -1650,6 +1654,7 @@ admin_require_login();
           <button class="btn-mini" type="button" data-action="code" data-id="${u.id}">Ver código</button>
           <button class="btn-mini" type="button" data-action="copy" data-id="${u.id}">Copiar</button>
           <button class="btn-mini" type="button" data-action="wa" data-id="${u.id}">WhatsApp</button>
+          <button class="btn-mini btn-danger" type="button" data-action="delete" data-id="${u.id}">Eliminar</button>
         </div>
       </article>`;
     }).join("");
@@ -1733,6 +1738,29 @@ admin_require_login();
     state = data;
     renderAll();
     showMsg("ok", data.message || "Guardado correctamente.");
+  }
+
+  async function deleteInvitation(unidad) {
+    const id = Number(unidad && unidad.id);
+    if (!id) return;
+    const name = String(unidad.nombre || "esta invitación");
+    const ok = window.confirm(
+      "Se eliminará permanentemente la invitación de \"" + name + "\" y sus registros relacionados.\n\n¿Deseas continuar?"
+    );
+    if (!ok) return;
+
+    const fd = new FormData();
+    fd.append("unidad_id", String(id));
+    const res = await fetch("admin_api.php?action=delete_invitation", {
+      method: "POST",
+      body: fd,
+      headers: { Accept: "application/json" }
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "No se pudo eliminar.");
+    state = data;
+    renderAll();
+    showMsg("ok", data.message || "Invitación eliminada.");
   }
 
   function openModal() {
@@ -2314,6 +2342,11 @@ admin_require_login();
     if (action === "copy") copyInvite(unidad);
     if (action === "wa") sendWhatsApp(unidad);
     if (action === "code") openCodeModal(unidad);
+    if (action === "delete") {
+      deleteInvitation(unidad).catch((err) => {
+        showMsg("error", err.message || "No se pudo eliminar.");
+      });
+    }
   });
 
   openModalBtn.addEventListener("click", openCreateModal);
